@@ -113,6 +113,7 @@ class SamsungEdgeUnifiedPanel(QWidget):
     """Unified Edge Panel with attached sliding tab, non-overlapping buttons, and instant tooltips."""
 
     request_snip = pyqtSignal()
+    request_color_picker = pyqtSignal()
     request_close_all = pyqtSignal()
     request_toggle_pin_visibility = pyqtSignal()
     request_quit = pyqtSignal()
@@ -132,7 +133,7 @@ class SamsungEdgeUnifiedPanel(QWidget):
         self.tab_width = 16
         self.drawer_width = 52
         self.total_width = self.tab_width + self.drawer_width  # 68px
-        self.panel_height = 290
+        self.panel_height = 330
         
         self.setFixedSize(self.total_width, self.panel_height)
         
@@ -180,6 +181,16 @@ class SamsungEdgeUnifiedPanel(QWidget):
         self._register_tooltip(self.btn_snip, "✂️ Выделить область (Snip)")
         self.btn_snip.clicked.connect(self._on_snip_clicked)
         layout.addWidget(self.btn_snip)
+
+        # 2. Screen Color Picker Button
+        self.btn_pipette = QPushButton(self.drawer_container)
+        self.btn_pipette.setProperty("class", "edge-icon-btn")
+        self.btn_pipette.setFixedSize(36, 36)
+        self.btn_pipette.setIcon(draw_icon("pipette", "#CBD5E1", 16))
+        self.btn_pipette.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._register_tooltip(self.btn_pipette, "🎯 Пипетка цвета (Color Picker)")
+        self.btn_pipette.clicked.connect(self._on_pipette_clicked)
+        layout.addWidget(self.btn_pipette)
 
         # Separator
         sep1 = QFrame(self.drawer_container)
@@ -268,6 +279,11 @@ class SamsungEdgeUnifiedPanel(QWidget):
         self.badge.hide_badge()
         self.close_panel()
         QTimer.singleShot(160, self.request_snip.emit)
+
+    def _on_pipette_clicked(self):
+        self.badge.hide_badge()
+        self.close_panel()
+        QTimer.singleShot(160, self.request_color_picker.emit)
 
     def _on_toggle_vis_clicked(self):
         self._pins_visible = not self._pins_visible
@@ -434,14 +450,17 @@ class SamsungEdgeUnifiedPanel(QWidget):
 class SamsungEdgeController:
     """Master controller managing the unified Edge Panel and pinned items."""
 
-    def __init__(self, on_snip_callback, on_quit_callback):
+    def __init__(self, on_snip_callback, on_quit_callback, on_color_picker_callback=None):
         self.on_snip_callback = on_snip_callback
         self.on_quit_callback = on_quit_callback
+        self.on_color_picker_callback = on_color_picker_callback
         self.pinned_widgets = []
 
         self.panel = SamsungEdgeUnifiedPanel()
 
         self.panel.request_snip.connect(self.on_snip_callback)
+        if self.on_color_picker_callback:
+            self.panel.request_color_picker.connect(self.on_color_picker_callback)
         self.panel.request_close_all.connect(self.close_all_pinned)
         self.panel.request_toggle_pin_visibility.connect(self.toggle_pinned_visibility)
         self.panel.request_quit.connect(self.on_quit_callback)

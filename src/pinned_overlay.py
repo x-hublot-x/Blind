@@ -5,7 +5,7 @@ from enum import Enum, auto
 
 from PyQt6.QtWidgets import (
     QWidget, QHBoxLayout, QPushButton,
-    QFileDialog, QMenu
+    QFileDialog, QMenu, QToolTip
 )
 from PyQt6.QtCore import Qt, QPoint, pyqtSignal, QRect, QRectF
 from PyQt6.QtGui import (
@@ -13,6 +13,7 @@ from PyQt6.QtGui import (
     QMouseEvent, QWheelEvent, QGuiApplication, QAction, QCursor
 )
 from .icons import draw_icon
+from .ocr import recognize_text_from_pixmap
 
 
 class ResizeZone(Enum):
@@ -84,6 +85,13 @@ class PinnedImageWidget(QWidget):
         self.btn_copy.setToolTip("Копировать (Ctrl+C)")
         self.btn_copy.clicked.connect(self.copy_to_clipboard)
 
+        self.btn_ocr = QPushButton(self.toolbar)
+        self.btn_ocr.setProperty("class", "micro-btn")
+        self.btn_ocr.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_ocr.setIcon(draw_icon("ocr", "#E2E8F0", 12))
+        self.btn_ocr.setToolTip("Распознать текст OCR (Ctrl+T)")
+        self.btn_ocr.clicked.connect(self.recognize_ocr)
+
         self.btn_save = QPushButton(self.toolbar)
         self.btn_save.setProperty("class", "micro-btn")
         self.btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -106,6 +114,7 @@ class PinnedImageWidget(QWidget):
         self.btn_close.clicked.connect(self.close)
 
         tb_layout.addWidget(self.btn_copy)
+        tb_layout.addWidget(self.btn_ocr)
         tb_layout.addWidget(self.btn_save)
         tb_layout.addWidget(self.btn_reset)
         tb_layout.addWidget(self.btn_close)
@@ -387,11 +396,27 @@ class PinnedImageWidget(QWidget):
         if filepath:
             self.original_pixmap.save(filepath)
 
+    def recognize_ocr(self):
+        """Recognizes text from pinned image and copies to clipboard."""
+        text = recognize_text_from_pixmap(self.original_pixmap)
+        if text:
+            clipboard = QGuiApplication.clipboard()
+            clipboard.setText(text)
+            preview = text.replace('\n', ' ')
+            if len(preview) > 28:
+                preview = preview[:25] + "..."
+            msg = f"✓ Текст скопирован: \"{preview}\""
+        else:
+            msg = "Текст не обнаружен"
+        QToolTip.showText(QCursor.pos(), msg, self, QRect(), 2000)
+
     def keyPressEvent(self, event):
         if event.key() in (Qt.Key.Key_Escape, Qt.Key.Key_Delete):
             self.close()
         elif event.key() == Qt.Key.Key_C and (event.modifiers() & Qt.KeyboardModifier.ControlModifier):
             self.copy_to_clipboard()
+        elif event.key() == Qt.Key.Key_T and (event.modifiers() & Qt.KeyboardModifier.ControlModifier):
+            self.recognize_ocr()
         elif event.key() == Qt.Key.Key_S and (event.modifiers() & Qt.KeyboardModifier.ControlModifier):
             self.save_to_file()
         else:
@@ -402,6 +427,9 @@ class PinnedImageWidget(QWidget):
         
         act_copy = QAction(draw_icon("copy", "#FFFFFF", 14), "Копировать (Ctrl+C)", self)
         act_copy.triggered.connect(self.copy_to_clipboard)
+
+        act_ocr = QAction(draw_icon("ocr", "#FFFFFF", 14), "Распознать текст OCR (Ctrl+T)", self)
+        act_ocr.triggered.connect(self.recognize_ocr)
         
         act_save = QAction(draw_icon("save", "#FFFFFF", 14), "Сохранить... (Ctrl+S)", self)
         act_save.triggered.connect(self.save_to_file)
@@ -410,6 +438,7 @@ class PinnedImageWidget(QWidget):
         act_reset.triggered.connect(self.reset_scale)
         
         menu.addAction(act_copy)
+        menu.addAction(act_ocr)
         menu.addAction(act_save)
         menu.addAction(act_reset)
         menu.addSeparator()

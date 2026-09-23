@@ -24,6 +24,7 @@ from src.icons import create_app_icon, draw_icon
 from src.edge_panel import SamsungEdgeController
 from src.snipping_tool import SnippingOverlay
 from src.pinned_overlay import PinnedImageWidget
+from src.color_picker import ScreenColorPickerOverlay
 from src.autostart import is_autostart_enabled, set_autostart
 
 
@@ -34,13 +35,15 @@ class AppController:
         self.app = app
         self.app.setStyleSheet(DARK_THEME_QSS)
 
-        # Snipping overlay instance
+        # Overlay instances
         self.snip_overlay = None
+        self.color_picker_overlay = None
 
         # Edge panel controller
         self.edge_controller = SamsungEdgeController(
             on_snip_callback=self.trigger_snip,
-            on_quit_callback=self.quit_app
+            on_quit_callback=self.quit_app,
+            on_color_picker_callback=self.trigger_color_picker
         )
 
         # System tray icon setup
@@ -60,6 +63,11 @@ class AppController:
         act_snip = QAction(draw_icon("snip", "#FFFFFF", 16), "Выделить область (Snip)", tray_menu)
         act_snip.triggered.connect(self.trigger_snip)
         tray_menu.addAction(act_snip)
+
+        # Color picker action
+        act_picker = QAction(draw_icon("pipette", "#FFFFFF", 16), "Пипетка цвета (Color Picker)", tray_menu)
+        act_picker.triggered.connect(self.trigger_color_picker)
+        tray_menu.addAction(act_picker)
 
         # Toggle Edge Handle action
         self.act_toggle_handle = QAction("Показать шторку Edge", tray_menu)
@@ -122,6 +130,14 @@ class AppController:
         self.snip_overlay = SnippingOverlay()
         self.snip_overlay.snip_pinned.connect(self.on_snip_pinned)
         self.snip_overlay.start_capture()
+
+    def trigger_color_picker(self):
+        """Launches the fullscreen color picker overlay."""
+        if self.color_picker_overlay is not None:
+            self.color_picker_overlay.close()
+
+        self.color_picker_overlay = ScreenColorPickerOverlay()
+        self.color_picker_overlay.start_picker()
 
     def on_snip_pinned(self, pixmap: QPixmap, pos: QPoint):
         """Called when user confirms pinning a region."""

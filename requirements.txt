@@ -1,2 +1,6 @@
 PyQt6>=6.6.0
 Pillow>=10.0.0
+winrt-Windows.Media.Ocr>=3.2.1
+winrt-Windows.Globalization>=3.2.1
+winrt-Windows.Storage.Streams>=3.2.1
+winrt-Windows.Graphics.Imaging>=3.2.1
