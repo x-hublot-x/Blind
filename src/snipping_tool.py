@@ -414,7 +414,11 @@ class SnippingOverlay(QWidget):
             int(self._selection_rect.y() * dpr),
             int(self._selection_rect.width() * dpr),
             int(self._selection_rect.height() * dpr)
-        )
+        ).intersected(self.background_pixmap.rect())
+
+        if crop_rect.isEmpty():
+            return QPixmap()
+
         base_pixmap = self.background_pixmap.copy(crop_rect)
 
         # If annotations exist, paint them onto base pixmap
@@ -617,49 +621,57 @@ class SnippingOverlay(QWidget):
         dx = pos.x() - self._start_pos.x()
         dy = pos.y() - self._start_pos.y()
         init = self._initial_rect
+        max_w = self.width()
+        max_h = self.height()
 
         if self._drag_mode == DragMode.CREATE:
-            self._selection_rect = QRect(self._start_pos, pos).normalized()
+            cur_x = max(0, min(pos.x(), max_w))
+            cur_y = max(0, min(pos.y(), max_h))
+            start_x = max(0, min(self._start_pos.x(), max_w))
+            start_y = max(0, min(self._start_pos.y(), max_h))
+            self._selection_rect = QRect(QPoint(start_x, start_y), QPoint(cur_x, cur_y)).normalized()
             
         elif self._drag_mode == DragMode.MOVE:
-            new_r = QRect(init)
-            new_r.translate(dx, dy)
-            self._selection_rect = new_r
+            new_w = init.width()
+            new_h = init.height()
+            new_x = max(0, min(init.x() + dx, max_w - new_w))
+            new_y = max(0, min(init.y() + dy, max_h - new_h))
+            self._selection_rect = QRect(new_x, new_y, new_w, new_h)
             
         elif self._drag_mode == DragMode.RESIZE_LEFT:
-            new_left = min(init.right() - 10, init.left() + dx)
+            new_left = max(0, min(init.right() - 10, init.left() + dx))
             self._selection_rect = QRect(new_left, init.top(), init.right() - new_left, init.height())
             
         elif self._drag_mode == DragMode.RESIZE_RIGHT:
-            new_right = max(init.left() + 10, init.right() + dx)
+            new_right = min(max_w, max(init.left() + 10, init.right() + dx))
             self._selection_rect = QRect(init.left(), init.top(), new_right - init.left(), init.height())
             
         elif self._drag_mode == DragMode.RESIZE_TOP:
-            new_top = min(init.bottom() - 10, init.top() + dy)
+            new_top = max(0, min(init.bottom() - 10, init.top() + dy))
             self._selection_rect = QRect(init.left(), new_top, init.width(), init.bottom() - new_top)
             
         elif self._drag_mode == DragMode.RESIZE_BOTTOM:
-            new_bottom = max(init.top() + 10, init.bottom() + dy)
+            new_bottom = min(max_h, max(init.top() + 10, init.bottom() + dy))
             self._selection_rect = QRect(init.left(), init.top(), init.width(), new_bottom - init.top())
             
         elif self._drag_mode == DragMode.RESIZE_TOP_LEFT:
-            new_left = min(init.right() - 10, init.left() + dx)
-            new_top = min(init.bottom() - 10, init.top() + dy)
+            new_left = max(0, min(init.right() - 10, init.left() + dx))
+            new_top = max(0, min(init.bottom() - 10, init.top() + dy))
             self._selection_rect = QRect(new_left, new_top, init.right() - new_left, init.bottom() - new_top)
             
         elif self._drag_mode == DragMode.RESIZE_TOP_RIGHT:
-            new_right = max(init.left() + 10, init.right() + dx)
-            new_top = min(init.bottom() - 10, init.top() + dy)
+            new_right = min(max_w, max(init.left() + 10, init.right() + dx))
+            new_top = max(0, min(init.bottom() - 10, init.top() + dy))
             self._selection_rect = QRect(init.left(), new_top, new_right - init.left(), init.bottom() - new_top)
             
         elif self._drag_mode == DragMode.RESIZE_BOTTOM_LEFT:
-            new_left = min(init.right() - 10, init.left() + dx)
-            new_bottom = max(init.top() + 10, init.bottom() + dy)
+            new_left = max(0, min(init.right() - 10, init.left() + dx))
+            new_bottom = min(max_h, max(init.top() + 10, init.bottom() + dy))
             self._selection_rect = QRect(new_left, init.top(), init.right() - new_left, new_bottom - init.top())
             
         elif self._drag_mode == DragMode.RESIZE_BOTTOM_RIGHT:
-            new_right = max(init.left() + 10, init.right() + dx)
-            new_bottom = max(init.top() + 10, init.bottom() + dy)
+            new_right = min(max_w, max(init.left() + 10, init.right() + dx))
+            new_bottom = min(max_h, max(init.top() + 10, init.bottom() + dy))
             self._selection_rect = QRect(init.left(), init.top(), new_right - init.left(), new_bottom - init.top())
 
         self.update()
@@ -726,8 +738,16 @@ class SnippingOverlay(QWidget):
                 int(self._selection_rect.width() * dpr),
                 int(self._selection_rect.height() * dpr)
             )
-            sub_pix = self.background_pixmap.copy(crop_rect)
-            painter.drawPixmap(self._selection_rect, sub_pix)
+            safe_crop = crop_rect.intersected(self.background_pixmap.rect())
+            if not safe_crop.isEmpty():
+                sub_pix = self.background_pixmap.copy(safe_crop)
+                dest_rect = QRect(
+                    int(safe_crop.x() / dpr),
+                    int(safe_crop.y() / dpr),
+                    int(safe_crop.width() / dpr),
+                    int(safe_crop.height() / dpr)
+                )
+                painter.drawPixmap(dest_rect, sub_pix)
 
             # Draw annotations translated to selection position
             if self._annotations:
