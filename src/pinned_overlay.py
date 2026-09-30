@@ -81,35 +81,35 @@ class PinnedImageWidget(QWidget):
         self.btn_copy = QPushButton(self.toolbar)
         self.btn_copy.setProperty("class", "micro-btn")
         self.btn_copy.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_copy.setIcon(draw_icon("copy", "#E2E8F0", 12))
+        self.btn_copy.setIcon(draw_icon("copy", size=14))
         self.btn_copy.setToolTip("Копировать (Ctrl+C)")
         self.btn_copy.clicked.connect(self.copy_to_clipboard)
 
         self.btn_ocr = QPushButton(self.toolbar)
         self.btn_ocr.setProperty("class", "micro-btn")
         self.btn_ocr.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_ocr.setIcon(draw_icon("ocr", "#E2E8F0", 12))
+        self.btn_ocr.setIcon(draw_icon("ocr", size=14))
         self.btn_ocr.setToolTip("Распознать текст OCR (Ctrl+T)")
         self.btn_ocr.clicked.connect(self.recognize_ocr)
 
         self.btn_save = QPushButton(self.toolbar)
         self.btn_save.setProperty("class", "micro-btn")
         self.btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_save.setIcon(draw_icon("save", "#E2E8F0", 12))
+        self.btn_save.setIcon(draw_icon("save", size=14))
         self.btn_save.setToolTip("Сохранить (Ctrl+S)")
         self.btn_save.clicked.connect(self.save_to_file)
 
         self.btn_reset = QPushButton(self.toolbar)
         self.btn_reset.setProperty("class", "micro-btn")
         self.btn_reset.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_reset.setIcon(draw_icon("reset", "#E2E8F0", 12))
+        self.btn_reset.setIcon(draw_icon("reset", size=14))
         self.btn_reset.setToolTip("Сброс масштаба 100% (2x клик)")
         self.btn_reset.clicked.connect(self.reset_scale)
 
         self.btn_close = QPushButton(self.toolbar)
         self.btn_close.setProperty("class", "micro-danger-btn")
         self.btn_close.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_close.setIcon(draw_icon("close", "#F87171", 12))
+        self.btn_close.setIcon(draw_icon("close", size=14))
         self.btn_close.setToolTip("Закрыть (Del / Esc)")
         self.btn_close.clicked.connect(self.close)
 
@@ -405,7 +405,7 @@ class PinnedImageWidget(QWidget):
             preview = text.replace('\n', ' ')
             if len(preview) > 28:
                 preview = preview[:25] + "..."
-            msg = f"✓ Текст скопирован: \"{preview}\""
+            msg = f"Текст скопирован: \"{preview}\""
         else:
             msg = "Текст не обнаружен"
         QToolTip.showText(QCursor.pos(), msg, self, QRect(), 2000)
@@ -425,16 +425,16 @@ class PinnedImageWidget(QWidget):
     def _show_context_menu(self, pos: QPoint):
         menu = QMenu(self)
         
-        act_copy = QAction(draw_icon("copy", "#FFFFFF", 14), "Копировать (Ctrl+C)", self)
+        act_copy = QAction(draw_icon("copy", size=14), "Копировать (Ctrl+C)", self)
         act_copy.triggered.connect(self.copy_to_clipboard)
 
-        act_ocr = QAction(draw_icon("ocr", "#FFFFFF", 14), "Распознать текст OCR (Ctrl+T)", self)
+        act_ocr = QAction(draw_icon("ocr", size=14), "Распознать текст OCR (Ctrl+T)", self)
         act_ocr.triggered.connect(self.recognize_ocr)
         
-        act_save = QAction(draw_icon("save", "#FFFFFF", 14), "Сохранить... (Ctrl+S)", self)
+        act_save = QAction(draw_icon("save", size=14), "Сохранить... (Ctrl+S)", self)
         act_save.triggered.connect(self.save_to_file)
         
-        act_reset = QAction(draw_icon("reset", "#FFFFFF", 14), "Сброс масштаба 100% (2x клик)", self)
+        act_reset = QAction(draw_icon("reset", size=14), "Сброс масштаба 100% (2x клик)", self)
         act_reset.triggered.connect(self.reset_scale)
         
         menu.addAction(act_copy)
@@ -443,7 +443,7 @@ class PinnedImageWidget(QWidget):
         menu.addAction(act_reset)
         menu.addSeparator()
         
-        act_close = QAction(draw_icon("close", "#F87171", 14), "Закрыть (Del / Esc)", self)
+        act_close = QAction(draw_icon("close", size=14), "Закрыть (Del / Esc)", self)
         act_close.triggered.connect(self.close)
         menu.addAction(act_close)
         

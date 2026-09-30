@@ -69,7 +69,7 @@ class SnipToastNotification(QWidget):
 
     def show_message(self, text: str, global_center: QPoint, duration: int = 2200):
         self.message = text
-        self.setFixedSize(300, 38)
+        self.setFixedSize(320, 40)
         
         x = global_center.x() - self.width() // 2
         y = global_center.y() - self.height() // 2
@@ -87,18 +87,19 @@ class SnipToastNotification(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, True)
 
-        rect = self.rect().adjusted(1, 1, -1, -1)
+        rect = QRectF(1.0, 1.0, float(self.width()) - 2.0, float(self.height()) - 2.0)
         path = QPainterPath()
-        path.addRoundedRect(rect.toRectF(), 10.0, 10.0)
+        path.addRoundedRect(rect, 10.0, 10.0)
 
-        # Background & stroke
+        # Background & subtle border
         painter.fillPath(path, QColor(24, 28, 36, 245))
         painter.setPen(QPen(QColor(59, 130, 246, 200), 1.5))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawPath(path)
 
         # Text
-        painter.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
-        painter.setPen(QColor("#FFFFFF"))
+        painter.setFont(QFont("Segoe UI Variable Display", 10, QFont.Weight.DemiBold))
+        painter.setPen(QColor("#F8FAFC"))
         painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, self.message)
         painter.end()
 
@@ -169,35 +170,36 @@ class SnippingOverlay(QWidget):
         top_row.addWidget(self.lbl_size)
 
         # Pin (Primary)
-        self.btn_pin = QPushButton(" Закрепить", self.action_bar)
+        self.btn_pin = QPushButton("Закрепить", self.action_bar)
         self.btn_pin.setProperty("class", "primary-btn")
-        self.btn_pin.setIcon(draw_icon("pin", "#FFFFFF", 16))
+        self.btn_pin.setIcon(draw_icon("pin", size=16))
         self.btn_pin.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_pin.setToolTip("Закрепить поверх окон (Enter / Пробел)")
         self.btn_pin.clicked.connect(self._action_pin)
         top_row.addWidget(self.btn_pin)
 
         # OCR Text recognition
-        self.btn_ocr = QPushButton(" 📝 Текст (OCR)", self.action_bar)
+        self.btn_ocr = QPushButton("Текст (OCR)", self.action_bar)
         self.btn_ocr.setProperty("class", "secondary-btn")
+        self.btn_ocr.setIcon(draw_icon("ocr", size=16))
         self.btn_ocr.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_ocr.setToolTip("Распознать и скопировать текст с изображения")
         self.btn_ocr.clicked.connect(self._action_ocr)
         top_row.addWidget(self.btn_ocr)
 
         # Copy
-        self.btn_copy = QPushButton(" Копировать", self.action_bar)
+        self.btn_copy = QPushButton("Копировать", self.action_bar)
         self.btn_copy.setProperty("class", "secondary-btn")
-        self.btn_copy.setIcon(draw_icon("copy", "#F1F5F9", 16))
+        self.btn_copy.setIcon(draw_icon("copy", size=16))
         self.btn_copy.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_copy.setToolTip("Скопировать в буфер (Ctrl+C)")
         self.btn_copy.clicked.connect(self._action_copy)
         top_row.addWidget(self.btn_copy)
 
         # Save
-        self.btn_save = QPushButton(" Сохранить", self.action_bar)
+        self.btn_save = QPushButton("Сохранить", self.action_bar)
         self.btn_save.setProperty("class", "secondary-btn")
-        self.btn_save.setIcon(draw_icon("save", "#F1F5F9", 16))
+        self.btn_save.setIcon(draw_icon("save", size=16))
         self.btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_save.setToolTip("Сохранить файл (Ctrl+S)")
         self.btn_save.clicked.connect(self._action_save)
@@ -206,7 +208,7 @@ class SnippingOverlay(QWidget):
         # Cancel
         self.btn_cancel = QPushButton(self.action_bar)
         self.btn_cancel.setProperty("class", "danger-icon-btn")
-        self.btn_cancel.setIcon(draw_icon("close", "#F87171", 16))
+        self.btn_cancel.setIcon(draw_icon("close", size=16))
         self.btn_cancel.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_cancel.setToolTip("Отмена (Esc)")
         self.btn_cancel.clicked.connect(self._action_cancel)
@@ -221,7 +223,7 @@ class SnippingOverlay(QWidget):
         # Drawing Tool Buttons
         self.btn_tool_pen = QPushButton(self.action_bar)
         self.btn_tool_pen.setProperty("class", "secondary-btn")
-        self.btn_tool_pen.setIcon(draw_icon("pen", "#E2E8F0", 16))
+        self.btn_tool_pen.setIcon(draw_icon("pen", size=16))
         self.btn_tool_pen.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_tool_pen.setToolTip("Карандаш (Рисование)")
         self.btn_tool_pen.clicked.connect(lambda: self._set_tool(AnnotateTool.PEN))
@@ -229,7 +231,7 @@ class SnippingOverlay(QWidget):
 
         self.btn_tool_arrow = QPushButton(self.action_bar)
         self.btn_tool_arrow.setProperty("class", "secondary-btn")
-        self.btn_tool_arrow.setIcon(draw_icon("arrow", "#E2E8F0", 16))
+        self.btn_tool_arrow.setIcon(draw_icon("arrow", size=16))
         self.btn_tool_arrow.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_tool_arrow.setToolTip("Стрелочка")
         self.btn_tool_arrow.clicked.connect(lambda: self._set_tool(AnnotateTool.ARROW))
@@ -237,7 +239,7 @@ class SnippingOverlay(QWidget):
 
         self.btn_tool_rect = QPushButton(self.action_bar)
         self.btn_tool_rect.setProperty("class", "secondary-btn")
-        self.btn_tool_rect.setIcon(draw_icon("rect", "#E2E8F0", 16))
+        self.btn_tool_rect.setIcon(draw_icon("rect", size=16))
         self.btn_tool_rect.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_tool_rect.setToolTip("Рамка / Прямоугольник")
         self.btn_tool_rect.clicked.connect(lambda: self._set_tool(AnnotateTool.RECT))
@@ -245,15 +247,16 @@ class SnippingOverlay(QWidget):
 
         self.btn_tool_highlighter = QPushButton(self.action_bar)
         self.btn_tool_highlighter.setProperty("class", "secondary-btn")
-        self.btn_tool_highlighter.setIcon(draw_icon("highlighter", "#E2E8F0", 16))
+        self.btn_tool_highlighter.setIcon(draw_icon("highlighter", size=16))
         self.btn_tool_highlighter.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_tool_highlighter.setToolTip("Маркер-хайлайтер")
         self.btn_tool_highlighter.clicked.connect(lambda: self._set_tool(AnnotateTool.HIGHLIGHTER))
         bot_row.addWidget(self.btn_tool_highlighter)
 
         # Color picker toggle
-        self.btn_color_toggle = QPushButton(" 🎨 Цвет", self.action_bar)
+        self.btn_color_toggle = QPushButton("Цвет", self.action_bar)
         self.btn_color_toggle.setProperty("class", "secondary-btn")
+        self.btn_color_toggle.setIcon(draw_icon("palette", size=16))
         self.btn_color_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
         self._update_color_button_style()
         self.btn_color_toggle.clicked.connect(self._cycle_color)
@@ -262,7 +265,7 @@ class SnippingOverlay(QWidget):
         # Undo button
         self.btn_undo = QPushButton(self.action_bar)
         self.btn_undo.setProperty("class", "secondary-btn")
-        self.btn_undo.setIcon(draw_icon("undo", "#E2E8F0", 16))
+        self.btn_undo.setIcon(draw_icon("undo", size=16))
         self.btn_undo.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_undo.setToolTip("Отменить рисование (Ctrl+Z)")
         self.btn_undo.clicked.connect(self._undo_annotation)
@@ -283,10 +286,17 @@ class SnippingOverlay(QWidget):
         self._update_cursor_for_pos(self.mapFromGlobal(QCursor.pos()))
 
     def _update_tool_buttons_style(self):
-        self.btn_tool_pen.setStyleSheet("background-color: #2563EB;" if self._current_tool == AnnotateTool.PEN else "")
-        self.btn_tool_arrow.setStyleSheet("background-color: #2563EB;" if self._current_tool == AnnotateTool.ARROW else "")
-        self.btn_tool_rect.setStyleSheet("background-color: #2563EB;" if self._current_tool == AnnotateTool.RECT else "")
-        self.btn_tool_highlighter.setStyleSheet("background-color: #2563EB;" if self._current_tool == AnnotateTool.HIGHLIGHTER else "")
+        tools = [
+            (self.btn_tool_pen, AnnotateTool.PEN),
+            (self.btn_tool_arrow, AnnotateTool.ARROW),
+            (self.btn_tool_rect, AnnotateTool.RECT),
+            (self.btn_tool_highlighter, AnnotateTool.HIGHLIGHTER),
+        ]
+        for btn, tool in tools:
+            is_active = (self._current_tool == tool)
+            btn.setProperty("class", "tool-active-btn" if is_active else "secondary-btn")
+            btn.style().unpolish(btn)
+            btn.style().polish(btn)
 
     def _cycle_color(self):
         self._current_color_idx = (self._current_color_idx + 1) % len(self._palette_colors)
@@ -515,7 +525,7 @@ class SnippingOverlay(QWidget):
                 preview = text.replace('\n', ' ')
                 if len(preview) > 28:
                     preview = preview[:25] + "..."
-                msg = f"✓ Текст скопирован: \"{preview}\""
+                msg = f"Текст скопирован: \"{preview}\""
             else:
                 msg = "Текст не обнаружен на вырезке"
 

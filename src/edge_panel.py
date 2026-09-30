@@ -10,14 +10,14 @@ from PyQt6.QtCore import (
 )
 from PyQt6.QtGui import (
     QPainter, QColor, QPen, QPainterPath, QMouseEvent,
-    QGuiApplication, QCursor, QFontMetrics, QFont
+    QGuiApplication, QCursor, QFontMetrics, QFont, QLinearGradient
 )
 from .icons import draw_icon
 from .autostart import is_autostart_enabled, set_autostart
 
 
 class InstantBadgeWidget(QWidget):
-    """Instant floating tooltip badge with mathematically smooth vector borders and zero corner artifacts."""
+    """Instant floating tooltip badge with smooth vector borders and clean typography."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -32,8 +32,7 @@ class InstantBadgeWidget(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
         
         self.badge_text = ""
-        self._font = QFont("Segoe UI", 10)
-        self._font.setBold(True)
+        self._font = QFont("Segoe UI", 9, QFont.Weight.DemiBold)
         
         self.opacity_effect = QGraphicsOpacityEffect(self)
         self.setGraphicsEffect(self.opacity_effect)
@@ -55,20 +54,25 @@ class InstantBadgeWidget(QWidget):
 
         # 1. Smooth Rounded Rect Path
         path = QPainterPath()
-        path.addRoundedRect(rect, 8.0, 8.0)
+        path.addRoundedRect(rect, 7.0, 7.0)
 
-        # 2. Fill background
-        painter.fillPath(path, QColor(24, 28, 36, 245))
+        # 2. Shadow
+        shadow_path = QPainterPath()
+        shadow_path.addRoundedRect(rect.translated(0, 2), 7.0, 7.0)
+        painter.fillPath(shadow_path, QColor(0, 0, 0, 80))
 
-        # 3. Clean vector stroke (no corner dots)
-        pen = QPen(QColor(255, 255, 255, 75), 1.2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+        # 3. Fill background with deep frosted acrylic
+        painter.fillPath(path, QColor(18, 22, 30, 245))
+
+        # 4. Clean vector stroke
+        pen = QPen(QColor(255, 255, 255, 60), 1.0, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
         painter.setPen(pen)
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawPath(path)
 
-        # 4. Text
+        # 5. Text
         painter.setFont(self._font)
-        painter.setPen(QColor(245, 247, 250))
+        painter.setPen(QColor(241, 245, 249))
         painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, self.badge_text)
 
         painter.end()
@@ -79,14 +83,14 @@ class InstantBadgeWidget(QWidget):
         
         fm = QFontMetrics(self._font)
         text_w = fm.horizontalAdvance(text)
-        badge_w = text_w + 24
-        badge_h = 30
+        badge_w = text_w + 22
+        badge_h = 28
         
         self.setFixedSize(badge_w, badge_h)
         
         # Position to the left of the target button
         glob_pos = target_widget.mapToGlobal(QPoint(0, target_widget.height() // 2))
-        x = glob_pos.x() - badge_w - 10
+        x = glob_pos.x() - badge_w - 8
         y = glob_pos.y() - badge_h // 2
         
         self.move(x, y)
@@ -130,10 +134,10 @@ class SamsungEdgeUnifiedPanel(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
         self.setMouseTracking(True)
 
-        self.tab_width = 16
-        self.drawer_width = 52
-        self.total_width = self.tab_width + self.drawer_width  # 68px
-        self.panel_height = 330
+        self.tab_width = 18
+        self.drawer_width = 54
+        self.total_width = self.tab_width + self.drawer_width  # 72px
+        self.panel_height = 340
         
         self.setFixedSize(self.total_width, self.panel_height)
         
@@ -176,9 +180,9 @@ class SamsungEdgeUnifiedPanel(QWidget):
         self.btn_snip = QPushButton(self.drawer_container)
         self.btn_snip.setProperty("class", "edge-primary-btn")
         self.btn_snip.setFixedSize(36, 36)
-        self.btn_snip.setIcon(draw_icon("snip", "#FFFFFF", 18))
+        self.btn_snip.setIcon(draw_icon("snip", size=18))
         self.btn_snip.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._register_tooltip(self.btn_snip, "✂️ Выделить область (Snip)")
+        self._register_tooltip(self.btn_snip, "Выделить область (Snip)")
         self.btn_snip.clicked.connect(self._on_snip_clicked)
         layout.addWidget(self.btn_snip)
 
@@ -186,46 +190,46 @@ class SamsungEdgeUnifiedPanel(QWidget):
         self.btn_pipette = QPushButton(self.drawer_container)
         self.btn_pipette.setProperty("class", "edge-icon-btn")
         self.btn_pipette.setFixedSize(36, 36)
-        self.btn_pipette.setIcon(draw_icon("pipette", "#CBD5E1", 16))
+        self.btn_pipette.setIcon(draw_icon("pipette", size=18))
         self.btn_pipette.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._register_tooltip(self.btn_pipette, "🎯 Пипетка цвета (Color Picker)")
+        self._register_tooltip(self.btn_pipette, "Пипетка цвета (Color Picker)")
         self.btn_pipette.clicked.connect(self._on_pipette_clicked)
         layout.addWidget(self.btn_pipette)
 
         # Separator
         sep1 = QFrame(self.drawer_container)
         sep1.setFrameShape(QFrame.Shape.HLine)
-        sep1.setStyleSheet("background-color: rgba(255, 255, 255, 0.15); max-height: 1px; min-height: 1px;")
+        sep1.setStyleSheet("background-color: rgba(255, 255, 255, 0.12); max-height: 1px; min-height: 1px;")
         layout.addWidget(sep1)
 
-        # 2. Toggle Pins Visibility
+        # 3. Toggle Pins Visibility
         self.btn_toggle_vis = QPushButton(self.drawer_container)
         self.btn_toggle_vis.setProperty("class", "edge-icon-btn")
         self.btn_toggle_vis.setFixedSize(36, 36)
-        self.btn_toggle_vis.setIcon(draw_icon("pin", "#CBD5E1", 16))
+        self.btn_toggle_vis.setIcon(draw_icon("pin", size=18))
         self.btn_toggle_vis.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._register_tooltip(self.btn_toggle_vis, "📌 Скрыть / Показать закрепы")
+        self._register_tooltip(self.btn_toggle_vis, "Скрыть / Показать закрепы")
         self.btn_toggle_vis.setEnabled(False)
         self.btn_toggle_vis.clicked.connect(self._on_toggle_vis_clicked)
         layout.addWidget(self.btn_toggle_vis)
 
-        # 3. Clear All Pinned
+        # 4. Clear All Pinned
         self.btn_clear_all = QPushButton(self.drawer_container)
         self.btn_clear_all.setProperty("class", "edge-icon-btn")
         self.btn_clear_all.setFixedSize(36, 36)
-        self.btn_clear_all.setIcon(draw_icon("trash", "#CBD5E1", 16))
+        self.btn_clear_all.setIcon(draw_icon("trash", size=18))
         self.btn_clear_all.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._register_tooltip(self.btn_clear_all, "🗑️ Закрыть все закрепы")
+        self._register_tooltip(self.btn_clear_all, "Закрыть все закрепы")
         self.btn_clear_all.setEnabled(False)
         self.btn_clear_all.clicked.connect(self.request_close_all.emit)
         layout.addWidget(self.btn_clear_all)
 
-        # 4. Autostart Toggle
+        # 5. Autostart Toggle
         self.btn_autostart = QPushButton(self.drawer_container)
         self.btn_autostart.setProperty("class", "edge-icon-btn")
         self.btn_autostart.setFixedSize(36, 36)
         self.btn_autostart.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._register_tooltip(self.btn_autostart, "🚀 Автозапуск: Включен" if is_autostart_enabled() else "🚀 Автозапуск: Отключен")
+        self._register_tooltip(self.btn_autostart, "Автозапуск: Включен" if is_autostart_enabled() else "Автозапуск: Отключен")
         self._update_autostart_badge()
         self.btn_autostart.clicked.connect(self._on_autostart_clicked)
         layout.addWidget(self.btn_autostart)
@@ -233,16 +237,16 @@ class SamsungEdgeUnifiedPanel(QWidget):
         # Separator
         sep2 = QFrame(self.drawer_container)
         sep2.setFrameShape(QFrame.Shape.HLine)
-        sep2.setStyleSheet("background-color: rgba(255, 255, 255, 0.15); max-height: 1px; min-height: 1px;")
+        sep2.setStyleSheet("background-color: rgba(255, 255, 255, 0.12); max-height: 1px; min-height: 1px;")
         layout.addWidget(sep2)
 
-        # 5. Quit
+        # 6. Quit
         self.btn_quit = QPushButton(self.drawer_container)
         self.btn_quit.setProperty("class", "edge-icon-btn")
         self.btn_quit.setFixedSize(36, 36)
-        self.btn_quit.setIcon(draw_icon("close", "#F87171", 14))
+        self.btn_quit.setIcon(draw_icon("close", size=16))
         self.btn_quit.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._register_tooltip(self.btn_quit, "✖ Выход")
+        self._register_tooltip(self.btn_quit, "Выход")
         self.btn_quit.clicked.connect(self.request_quit.emit)
         layout.addWidget(self.btn_quit)
 
@@ -264,15 +268,15 @@ class SamsungEdgeUnifiedPanel(QWidget):
 
     def _update_autostart_badge(self):
         enabled = is_autostart_enabled()
-        text = "🚀 Автозапуск: Включен" if enabled else "🚀 Автозапуск: Отключен"
+        text = "Автозапуск: Включен" if enabled else "Автозапуск: Отключен"
         self._tooltip_map[self.btn_autostart] = text
-        self.btn_autostart.setIcon(draw_icon("autostart", "#60A5FA" if enabled else "#94A3B8", 16))
+        self.btn_autostart.setIcon(draw_icon("autostart", "#38BDF8" if enabled else "#64748B", 18))
 
     def _on_autostart_clicked(self):
         current = is_autostart_enabled()
         set_autostart(not current)
         self._update_autostart_badge()
-        text = "🚀 Автозапуск: Включен" if not current else "🚀 Автозапуск: Отключен"
+        text = "Автозапуск: Включен" if not current else "Автозапуск: Отключен"
         self.badge.show_badge(text, self.btn_autostart)
 
     def _on_snip_clicked(self):
@@ -287,7 +291,7 @@ class SamsungEdgeUnifiedPanel(QWidget):
 
     def _on_toggle_vis_clicked(self):
         self._pins_visible = not self._pins_visible
-        txt = "📌 Показать закрепы" if not self._pins_visible else "📌 Скрыть закрепы"
+        txt = "Показать закрепы" if not self._pins_visible else "Скрыть закрепы"
         self._tooltip_map[self.btn_toggle_vis] = txt
         self.badge.show_badge(txt, self.btn_toggle_vis)
         self.request_toggle_pin_visibility.emit()
@@ -297,11 +301,11 @@ class SamsungEdgeUnifiedPanel(QWidget):
         if count == 0:
             self.btn_toggle_vis.setEnabled(False)
             self.btn_clear_all.setEnabled(False)
-            self._tooltip_map[self.btn_toggle_vis] = "📌 Нет закрепов"
+            self._tooltip_map[self.btn_toggle_vis] = "Нет закрепов"
         else:
             self.btn_toggle_vis.setEnabled(True)
             self.btn_clear_all.setEnabled(True)
-            self._tooltip_map[self.btn_toggle_vis] = f"📌 Закрепы ({count} шт.)"
+            self._tooltip_map[self.btn_toggle_vis] = f"Закрепы ({count} шт.)"
 
     def _position_closed_default(self):
         screen = QGuiApplication.primaryScreen().geometry()
@@ -325,27 +329,29 @@ class SamsungEdgeUnifiedPanel(QWidget):
         drawer_path.addRoundedRect(QRectF(tw, 0, w - tw + 10, h), radius, radius)
         
         # Tab handle pill
-        tab_h = 76.0
+        tab_h = 80.0
         tab_y = (h - tab_h) / 2.0
         tab_path = QPainterPath()
         tab_path.addRoundedRect(QRectF(0, tab_y, tw + 10, tab_h), 8.0, 8.0)
 
         combined_path = drawer_path.united(tab_path)
 
-        # Fill with frosted acrylic grey
-        bg_color = QColor(42, 46, 54, 225)
-        painter.fillPath(combined_path, bg_color)
+        # Fill with frosted acrylic dark gradient
+        bg_grad = QLinearGradient(0, 0, w, h)
+        bg_grad.setColorAt(0.0, QColor(30, 35, 46, 235))
+        bg_grad.setColorAt(1.0, QColor(18, 22, 30, 245))
+        painter.fillPath(combined_path, bg_grad)
 
-        # Clean anti-aliased border
-        border_pen = QPen(QColor(255, 255, 255, 55), 1.2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+        # Clean anti-aliased border with subtle glow
+        border_pen = QPen(QColor(255, 255, 255, 50), 1.2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
         painter.setPen(border_pen)
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawPath(combined_path)
 
-        # Vertical light grey grip line in the tab handle
-        grip_pen = QPen(QColor(255, 255, 255, 180), 2.5, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
+        # Vertical soft grip line in the tab handle
+        grip_pen = QPen(QColor(96, 165, 250, 220), 3.0, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
         painter.setPen(grip_pen)
-        painter.drawLine(int(tw / 2) - 1, int(tab_y + 20), int(tw / 2) - 1, int(tab_y + tab_h - 20))
+        painter.drawLine(int(tw / 2), int(tab_y + 22), int(tw / 2), int(tab_y + tab_h - 22))
 
         painter.end()
 

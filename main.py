@@ -16,8 +16,9 @@ import ctypes
 from PyQt6.QtWidgets import (
     QApplication, QSystemTrayIcon, QMenu
 )
-from PyQt6.QtCore import Qt, QPoint
+from PyQt6.QtCore import Qt, QPoint, QTimer
 from PyQt6.QtGui import QAction, QPixmap
+from PyQt6.QtNetwork import QLocalServer, QLocalSocket
 
 from src.styles import DARK_THEME_QSS
 from src.icons import create_app_icon, draw_icon
@@ -26,6 +27,8 @@ from src.snipping_tool import SnippingOverlay
 from src.pinned_overlay import PinnedImageWidget
 from src.color_picker import ScreenColorPickerOverlay
 from src.autostart import is_autostart_enabled, set_autostart
+
+LOCAL_SERVER_NAME = "blind_snip_and_pin_instance"
 
 
 class AppController:
@@ -49,6 +52,24 @@ class AppController:
         # System tray icon setup
         self._init_tray()
 
+        # Startup reveal: slide open panel for 3 seconds so user immediately sees it
+        QTimer.singleShot(400, self._startup_reveal)
+
+    def _startup_reveal(self):
+        self.edge_controller.panel.open_panel()
+        QTimer.singleShot(3200, self._auto_hide_startup)
+
+    def _auto_hide_startup(self):
+        if self.edge_controller.panel.isVisible() and not self.edge_controller.panel.underMouse():
+            self.edge_controller.panel.close_panel()
+
+    def activate_from_external(self):
+        """Called when user runs .exe again to bring panel to attention."""
+        self.edge_controller.restore_from_tray()
+        self.edge_controller.panel.open_panel()
+        self.edge_controller.panel.raise_()
+        self.edge_controller.panel.activateWindow()
+
     def _init_tray(self):
         """Initializes the Windows System Tray Icon."""
         if not QSystemTrayIcon.isSystemTrayAvailable():
@@ -60,12 +81,12 @@ class AppController:
         tray_menu = QMenu()
         
         # Snip action
-        act_snip = QAction(draw_icon("snip", "#FFFFFF", 16), "Выделить область (Snip)", tray_menu)
+        act_snip = QAction(draw_icon("snip", size=16), "Выделить область (Snip)", tray_menu)
         act_snip.triggered.connect(self.trigger_snip)
         tray_menu.addAction(act_snip)
 
         # Color picker action
-        act_picker = QAction(draw_icon("pipette", "#FFFFFF", 16), "Пипетка цвета (Color Picker)", tray_menu)
+        act_picker = QAction(draw_icon("pipette", size=16), "Пипетка цвета (Color Picker)", tray_menu)
         act_picker.triggered.connect(self.trigger_color_picker)
         tray_menu.addAction(act_picker)
 
@@ -86,20 +107,28 @@ class AppController:
         tray_menu.addAction(self.act_autostart)
 
         # Close all pinned
-        act_close_all = QAction(draw_icon("trash", "#FFFFFF", 16), "Закрыть все закрепы", tray_menu)
+        act_close_all = QAction(draw_icon("trash", size=16), "Закрыть все закрепы", tray_menu)
         act_close_all.triggered.connect(self.edge_controller.close_all_pinned)
         tray_menu.addAction(act_close_all)
 
         tray_menu.addSeparator()
 
         # Quit
-        act_quit = QAction(draw_icon("close", "#F87171", 16), "Выход", tray_menu)
+        act_quit = QAction(draw_icon("close", size=16), "Выход", tray_menu)
         act_quit.triggered.connect(self.quit_app)
         tray_menu.addAction(act_quit)
 
         self.tray_icon.setContextMenu(tray_menu)
         self.tray_icon.activated.connect(self._on_tray_activated)
         self.tray_icon.show()
+
+        # Show initial notification balloon
+        QTimer.singleShot(600, lambda: self.tray_icon.showMessage(
+            "Blind",
+            "Приложение запущено! Потяните шторку справа у края экрана.",
+            QSystemTrayIcon.MessageIcon.Information,
+            3000
+        ))
 
     def _on_tray_activated(self, reason):
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
@@ -164,7 +193,36 @@ def main():
     app.setQuitOnLastWindowClosed(False)  # Keep running in tray even if all pinned are closed
     app.setWindowIcon(create_app_icon(64))
 
+    # Single instance check
+    socket = QLocalSocket()
+    socket.connectToServer(LOCAL_SERVER_NAME)
+    if socket.waitForConnected(400):
+        # Already running: signal existing instance to activate and exit
+        socket.write(b"ACTIVATE\n")
+        socket.flush()
+        socket.waitForBytesWritten(400)
+        socket.disconnectFromServer()
+        sys.exit(0)
+
+    # First instance: setup server listener
+    QLocalServer.removeServer(LOCAL_SERVER_NAME)
+    server = QLocalServer()
+
     controller = AppController(app)
+
+    def handle_client_connection():
+        client = server.nextPendingConnection()
+        if client:
+            client.readyRead.connect(lambda: _on_client_ready_read(client, controller))
+
+    def _on_client_ready_read(client, ctrl):
+        data = client.readAll().data().decode("utf-8", errors="ignore")
+        if "ACTIVATE" in data:
+            ctrl.activate_from_external()
+        client.disconnectFromServer()
+
+    server.newConnection.connect(handle_client_connection)
+    server.listen(LOCAL_SERVER_NAME)
 
     sys.exit(app.exec())
 
